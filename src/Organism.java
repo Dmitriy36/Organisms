@@ -2,6 +2,7 @@ public class Organism {
     private int size = 6;
     private int positionX = 0;
     private int positionY = 0;
+    private boolean isInfected = false;
 
     public Organism(int size, int posX, int posY) {
         this.size = size;
