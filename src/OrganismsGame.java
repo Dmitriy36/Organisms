@@ -1,12 +1,12 @@
-//import org.w3c.dom.ls.LSOutput;
-
 import java.awt.*;
 import java.awt.event.*;
-
 import javax.swing.*;
-import javax.swing.BoxLayout;
+import javax.swing.border.Border;
 import java.util.Random;
 import java.util.ArrayList;
+
+
+import static java.lang.Math.abs;
 
 public class OrganismsGame extends JFrame implements ActionListener
 {
@@ -17,19 +17,25 @@ public class OrganismsGame extends JFrame implements ActionListener
     public static int height=1000;
     public static int width=1000;
 
+    public static int infectionRadius = 5;
+
 
     public static int numberOfOrganisms = 1000;
     public static int organismSize = 10;
-    public static int rightBorder = width/4;
+    public static int rightBorder = 0; //width/200;
 
-    public static int distance=3;
-    public static int speed = 50;
+    public static int distance=5;
+    public static int speed = 75;
 
 
-    private int oneY = height/3;
-    private int oneX = (width - rightBorder)/2;
-    public static int margin = 6;
+//    private int oneY = height/3;
+//    private int oneX = (width - rightBorder)/2;
+    public static int margin = 5;
     public static ArrayList<Organism> organisms = new ArrayList<>();
+    public static int sidePanelWidth = 200;
+    public JPanel buttonPanel = new JPanel();
+
+    public int infectedCounter = 0;
 
     boolean up = false;
     boolean down = true;
@@ -45,70 +51,90 @@ public class OrganismsGame extends JFrame implements ActionListener
         Random rand = new Random();
 
         for(int i = 0; i < numberOfOrganisms; i++) {
-            organisms.add(new Organism(organismSize, rand.nextInt(width - rightBorder - margin * 2 - 100), rand.nextInt(height - -margin * 2)));
+            organisms.add(new Organism(i, organismSize, rand.nextInt(width-sidePanelWidth-margin-organismSize), rand.nextInt(height-margin-organismSize)));
         }
 
         frame = new JFrame("Organisms");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setBackground(Color.RED);
 
 
         drawPanel = new DrawPanel();
 
       frame.getContentPane().add(BorderLayout.CENTER, drawPanel);
 
-
         frame.setResizable(true);
         frame.setSize(width,height);
-//        frame.setLocationByPlatform(true);
 
-        JPanel buttonPanel = new JPanel(new GridBagLayout());
-
-
-        JButton b1 = new JButton("Test1");
+        JButton b1 = new JButton("Infect one");
         b1.addActionListener(this);
-        JButton b2 = new JButton("Test2");
+        JButton b2 = new JButton("Cure all");
         b2.addActionListener(this);
-        JButton b3 = new JButton("Test3");
+        JButton b3 = new JButton("Cure one");
         b3.addActionListener(this);
 
-        GridBagConstraints c = new GridBagConstraints();
+        buttonPanel.setLayout(new GridLayout(10,1, 0, 10));
 
-        c.insets = new Insets(10,0,10,0);
-        c.weightx=10;
-        c.gridx=0;
-        c.gridy=1;
-        buttonPanel.add(b1,c);
-        c.gridx=0;
-        c.gridy=2;
-        buttonPanel.add(b2,c);
-        c.gridx=0;
-        c.gridy=3;
-        buttonPanel.add(b3,c);
+        buttonPanel.setPreferredSize(new Dimension(sidePanelWidth,1000));
+
+        buttonPanel.add(b1);
+        buttonPanel.add(b3);
+        buttonPanel.add(b2);
+
+        Border border = BorderFactory.createLineBorder(Color.BLUE,1);
+
+        JLabel label1 = new JLabel("Infected: " + "\n" + String.valueOf(infectedCounter), SwingConstants.CENTER);
+        label1.setBorder(border);
+        label1.setOpaque(true);
+        label1.setBackground(Color.YELLOW);
+        buttonPanel.add(label1);
+        buttonPanel.setBackground(Color.GRAY);
 
         frame.add(buttonPanel, BorderLayout.EAST);
-
-//        frame.getContentPane().add(BorderLayout.EAST, b1);
         frame.setVisible(true);
+    }
+
+    public void infect(ArrayList<Organism> organisms) {
+        Random rand = new Random();
+        int infected = rand.nextInt(organisms.size());
+        organisms.get(infected).infect();
+    }
+
+    public void cureAll(ArrayList<Organism> organisms) {
+        for(Organism current_organism: organisms) {
+            if(current_organism.infectCheck() == true) {
+                current_organism.cure();
+            }
+        }
+    }
+
+    public void cureOne(ArrayList<Organism> organisms) {
+        for(Organism current_organism: organisms) {
+            if(current_organism.infectCheck() == true) {
+                current_organism.cure();
+                break;
+            }
+        }
     }
 
     public void actionPerformed( ActionEvent evt)
     {
         String choice = evt.getActionCommand();
 
-        if(choice.equals("Test1")) {
-            System.out.println("Test1 button works.");
+        if(choice.equals("Infect one")) {
+            infect(organisms);
         }
-        if(choice.equals("Test2")) {
-            System.out.println("Test2 button works.");
+        if(choice.equals("Cure all")) {
+            cureAll(organisms);
         }
-        if(choice.equals("Test3")) {
-            System.out.println("Test3 button works.");
+        if(choice.equals("Cure one")) {
+            cureOne(organisms);
         }
 
     }
 
 
-    class DrawPanel extends JPanel implements ActionListener {
+    class DrawPanel extends JPanel {
         public void paintComponent(Graphics g) {
 
             g.setColor(Color.GREEN);
@@ -117,23 +143,21 @@ public class OrganismsGame extends JFrame implements ActionListener
             g.setColor(Color.WHITE);
             g.fillRect(margin, margin, this.getWidth() - rightBorder - margin*2, this.getHeight() - margin*2);
 
-
-//            JPanel buttonPanel = new JPanel();
-//            buttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-//
-//
-//            JButton b1 = new JButton("Test");
-//            b1.setLayout(new FlowLayout(FlowLayout.RIGHT));
-//            b1.addActionListener(this);
-//            buttonPanel.add(b1);
-//            this.add(buttonPanel, BoxLayout.X_AXIS);
-
             for (Organism current_organism : organisms) {
                 random(current_organism);
             }
+
+            drawPanel.getBackground();
             for (Organism current_organism : organisms) {
-                g.setColor(Color.BLACK);
+
+                proximityInfection(organisms, current_organism);
+
+                if(current_organism.infectCheck() == true) {
+                    g.setColor(Color.RED);
+                } else g.setColor(Color.BLUE);
                 g.fillOval(current_organism.getPositionX(), current_organism.getPositionY(), current_organism.getSize(), current_organism.getSize());
+                g.setFont(new Font("Lucida Sans", Font.PLAIN, 9));
+                g.drawString(current_organism.getID(), current_organism.getPositionX(), current_organism.getPositionY());
             }
 
             try {
@@ -145,11 +169,13 @@ public class OrganismsGame extends JFrame implements ActionListener
 
         }
 
-        public void actionPerformed( ActionEvent evt)
-        {
-            getContentPane().setBackground( Color.blue );     // Change the Frame's background
-            repaint();  // ask the system to paint the screen.
-            System.out.println("button works.");
+        public void proximityInfection(ArrayList<Organism> organisms, Organism organism1) {
+            for(Organism current_organism: organisms) {
+                if (current_organism.infectCheck() == true && abs(organism1.getPositionX() - current_organism.getPositionX()) <= infectionRadius && abs(organism1.getPositionY() - current_organism.getPositionY()) <= infectionRadius)  { //&& abs(organism1.getPositionY() - current_organism.getPositionY()) <= infectionRadius
+                    organism1.infect();
+                    infectedCounter++;
+                }
+            }
         }
 
         public int getWorkingWidth() {
@@ -166,7 +192,7 @@ public class OrganismsGame extends JFrame implements ActionListener
 
             if (organism.getPositionX() >= drawPanel.getWorkingWidth() - margin) // - organismSize)
             {organism.setPositionX(organism.getPositionX() - distance);}
-            else if (organism.getPositionX() <= margin ) // + organismSize )
+            else if (organism.getPositionX() <= margin) // + organismSize )
             {organism.setPositionX(organism.getPositionX() + distance);}
             else if (organism.getPositionY() >= drawPanel.getWorkingHeight() - margin) // - organismSize)
             {organism.setPositionY(organism.getPositionY() - distance);}
@@ -181,35 +207,11 @@ public class OrganismsGame extends JFrame implements ActionListener
                 down = rand.nextBoolean();
 
 
-                if (up) organism.setPositionY(organism.getPositionY() - distance);  // oneX -=speed;
-                if (down) organism.setPositionY(organism.getPositionY() + distance); // oneY +=speed;
-                if (left) organism.setPositionX(organism.getPositionX() - distance);// oneX -=speed;
-                if (right) organism.setPositionX(organism.getPositionX() + distance);// oneX +=speed;
+                if (up) organism.setPositionY(organism.getPositionY() - rand.nextInt(distance));  // oneX -=speed;
+                if (down) organism.setPositionY(organism.getPositionY() + rand.nextInt(distance)); // oneY +=speed;
+                if (left) organism.setPositionX(organism.getPositionX() - rand.nextInt(distance));// oneX -=speed;
+                if (right) organism.setPositionX(organism.getPositionX() + rand.nextInt(distance));// oneX +=speed;
             }
         }
     }
-
-    class Button extends JFrame implements ActionListener
-    {
-        JButton b1;
-        Button(String title) {
-            super(title);
-            setLayout(new FlowLayout());
-
-            // Construct a new button
-            b1 = new JButton("Test");
-
-            // Register the button object as the listener for JButton
-            b1.addActionListener(this);
-            add(b1); // Add the button to JFrame
-            setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        }
-        public void actionPerformed(ActionEvent evt)
-        {
-            System.out.println("test");
-        }
-
-
-    }
-
 }
