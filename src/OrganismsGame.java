@@ -14,28 +14,36 @@ public class OrganismsGame extends JFrame implements ActionListener
     JFrame frame;
     DrawPanel drawPanel;
 
+    public Random rand = new Random();
     public static int height=1000;
     public static int width=1000;
 
-    public static int infectionRadius = 5;
+    public int infectionRadius = 10;
 
 
-    public static int numberOfOrganisms = 1000;
-    public static int organismSize = 10;
-    public static int rightBorder = 0; //width/200;
+    public int numberOfOrganisms = 1000;
+    public int organismSize = 10;
+    public int rightBorder = 0; //width/200;
 
-    public static int distance=5;
-    public static int speed = 75;
+    public int distance=5;
+    public int speed = 75;
 
 
 //    private int oneY = height/3;
 //    private int oneX = (width - rightBorder)/2;
-    public static int margin = 5;
-    public static ArrayList<Organism> organisms = new ArrayList<>();
-    public static int sidePanelWidth = 200;
+    public int margin = 5;
+    public ArrayList<Organism> organisms = new ArrayList<>();
+    public ArrayList<Organism> infectedOrganisms = new ArrayList<>();
+    public int sidePanelWidth = 200;
     public JPanel buttonPanel = new JPanel();
 
-    public int infectedCounter = 0;
+    public JLabel label1;
+    public JLabel label2;
+    public JLabel label3;
+    public JLabel label4;
+
+    public int infectedManually = 0;
+    public int infectedProximity = 0;
 
     boolean up = false;
     boolean down = true;
@@ -48,7 +56,7 @@ public class OrganismsGame extends JFrame implements ActionListener
     }
 
     private void begin(int height, int width) {
-        Random rand = new Random();
+//        Random rand = new Random();
 
         for(int i = 0; i < numberOfOrganisms; i++) {
             organisms.add(new Organism(i, organismSize, rand.nextInt(width-sidePanelWidth-margin-organismSize), rand.nextInt(height-margin-organismSize)));
@@ -63,7 +71,7 @@ public class OrganismsGame extends JFrame implements ActionListener
 
       frame.getContentPane().add(BorderLayout.CENTER, drawPanel);
 
-        frame.setResizable(true);
+        frame.setResizable(false);
         frame.setSize(width,height);
 
         JButton b1 = new JButton("Infect one");
@@ -77,41 +85,77 @@ public class OrganismsGame extends JFrame implements ActionListener
 
         buttonPanel.setPreferredSize(new Dimension(sidePanelWidth,1000));
 
+        Border border = BorderFactory.createLineBorder(Color.BLUE,1);
+
+        b1.setBorder(border);
+        b2.setBorder(border);
+        b3.setBorder(border);
+
         buttonPanel.add(b1);
         buttonPanel.add(b3);
         buttonPanel.add(b2);
 
-        Border border = BorderFactory.createLineBorder(Color.BLUE,1);
+        label2 = new JLabel("Infected manually: " + "\n" + infectedManually, SwingConstants.CENTER);
+        label2.setBorder(border);
+        label2.setOpaque(true);
+        label2.setBackground(Color.YELLOW);
+        buttonPanel.add(label2);
 
-        JLabel label1 = new JLabel("Infected: " + "\n" + String.valueOf(infectedCounter), SwingConstants.CENTER);
+        label1 = new JLabel("Infected by proximity: " + "\n" + infectedProximity, SwingConstants.CENTER);
         label1.setBorder(border);
         label1.setOpaque(true);
         label1.setBackground(Color.YELLOW);
         buttonPanel.add(label1);
+
+        label3 = new JLabel("Total infected: " + "\n" + infectedProximity + infectedManually, SwingConstants.CENTER);
+        label3.setBorder(border);
+        label3.setOpaque(true);
+        label3.setBackground(Color.YELLOW);
+        buttonPanel.add(label3);
+
         buttonPanel.setBackground(Color.GRAY);
 
         frame.add(buttonPanel, BorderLayout.EAST);
         frame.setVisible(true);
     }
 
-    public void infect(ArrayList<Organism> organisms) {
-        Random rand = new Random();
+    public void proximityInfection(ArrayList<Organism> organisms, Organism organismChecked) {
+        for(Organism current_organism: organisms) {
+            if (current_organism.infectCheck()
+                    && abs(organismChecked.getPositionX() - current_organism.getPositionX()) <= infectionRadius
+                    && abs(organismChecked.getPositionY() - current_organism.getPositionY()) <= infectionRadius
+            )
+            {
+                organismChecked.infect();
+                if(!infectedOrganisms.contains(organismChecked)) {infectedOrganisms.add(organismChecked);}
+                System.out.println(infectedOrganisms.size());
+            }
+        }
+    }
+
+    public void infectRandom(ArrayList<Organism> organisms) {
         int infected = rand.nextInt(organisms.size());
         organisms.get(infected).infect();
+        infectedManually++;
+        infectedOrganisms.add(organisms.get(infected));
+
     }
 
     public void cureAll(ArrayList<Organism> organisms) {
         for(Organism current_organism: organisms) {
-            if(current_organism.infectCheck() == true) {
+            if(current_organism.infectCheck()) {
                 current_organism.cure();
             }
+            infectedOrganisms.clear();
+            infectedManually = 0;
         }
     }
 
     public void cureOne(ArrayList<Organism> organisms) {
         for(Organism current_organism: organisms) {
-            if(current_organism.infectCheck() == true) {
+            if(current_organism.infectCheck()) {
                 current_organism.cure();
+                infectedOrganisms.remove(current_organism);
                 break;
             }
         }
@@ -122,7 +166,7 @@ public class OrganismsGame extends JFrame implements ActionListener
         String choice = evt.getActionCommand();
 
         if(choice.equals("Infect one")) {
-            infect(organisms);
+            infectRandom(organisms);
         }
         if(choice.equals("Cure all")) {
             cureAll(organisms);
@@ -141,18 +185,17 @@ public class OrganismsGame extends JFrame implements ActionListener
             g.fillRect(0, 0, this.getWidth() - rightBorder, this.getHeight());
 
             g.setColor(Color.WHITE);
-            g.fillRect(margin, margin, this.getWidth() - rightBorder - margin*2, this.getHeight() - margin*2);
+            g.fillRect(margin, margin, this.getWidth() - rightBorder - margin * 2, this.getHeight() - margin * 2);
 
             for (Organism current_organism : organisms) {
                 random(current_organism);
+                proximityInfection(organisms, current_organism);
             }
 
             drawPanel.getBackground();
             for (Organism current_organism : organisms) {
 
-                proximityInfection(organisms, current_organism);
-
-                if(current_organism.infectCheck() == true) {
+                if (current_organism.infectCheck()) {
                     g.setColor(Color.RED);
                 } else g.setColor(Color.BLUE);
                 g.fillOval(current_organism.getPositionX(), current_organism.getPositionY(), current_organism.getSize(), current_organism.getSize());
@@ -165,18 +208,25 @@ public class OrganismsGame extends JFrame implements ActionListener
             } catch (Exception e) {
                 e.printStackTrace();
             }
+
+
+
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    infectedProximity = infectedOrganisms.size();
+                    label1.setText("Infected by proximity: " +infectedProximity);
+                    label2.setText("Infected manually: " +infectedManually);
+                    label3.setText("Infected total: " + (infectedManually + infectedProximity));
+                }
+            });
+
+            buttonPanel.repaint();
             frame.repaint();
 
         }
 
-        public void proximityInfection(ArrayList<Organism> organisms, Organism organism1) {
-            for(Organism current_organism: organisms) {
-                if (current_organism.infectCheck() == true && abs(organism1.getPositionX() - current_organism.getPositionX()) <= infectionRadius && abs(organism1.getPositionY() - current_organism.getPositionY()) <= infectionRadius)  { //&& abs(organism1.getPositionY() - current_organism.getPositionY()) <= infectionRadius
-                    organism1.infect();
-                    infectedCounter++;
-                }
-            }
-        }
+
 
         public int getWorkingWidth() {
             return this.getWidth() - rightBorder - margin*2;
@@ -188,7 +238,7 @@ public class OrganismsGame extends JFrame implements ActionListener
 
         private void random(Organism organism) // (Graphics g)
         {
-            Random rand = new Random();
+//            Random rand = new Random();
 
             if (organism.getPositionX() >= drawPanel.getWorkingWidth() - margin) // - organismSize)
             {organism.setPositionX(organism.getPositionX() - distance);}

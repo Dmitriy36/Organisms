@@ -12,28 +12,25 @@ public class Organism {
         this.positionY = posY;
     }
 
+    public String getID() {return this.id;}
+
     public void setSize(int size) {
         this.size = size;
+    }
+    public int getSize() {
+        return size;
     }
 
     public void setPositionX(int positionX) {
         this.positionX = positionX;
     }
-
-    public void setPositionY(int positionY) {
-        this.positionY = positionY;
-    }
-
-    public String getID() {return this.id;}
-
-    public int getSize() {
-        return size;
-    }
-
     public int getPositionX() {
         return positionX;
     }
 
+    public void setPositionY(int positionY) {
+        this.positionY = positionY;
+    }
     public int getPositionY() {
         return positionY;
     }
@@ -41,13 +38,13 @@ public class Organism {
     public void infect() {
         this.isInfected = true;
     }
+    public boolean infectCheck() {
+        return this.isInfected;
+    }
 
     public void cure() {
         this.isInfected = false;
     }
 
-    public boolean infectCheck() {
-        return this.isInfected;
-    }
 
 }
